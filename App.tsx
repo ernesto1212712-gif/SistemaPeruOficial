@@ -26,42 +26,128 @@ import {
   WifiOff,
   ChevronDown,
   ChevronUp,
-  Settings
+  Settings,
+  RefreshCw,
+  Users
 } from 'lucide-react';
 import { Product, Reference, Category, CATEGORIES, Announcement, DiscountCode } from './types';
 import { analyzeProductImage } from './services/geminiService';
 import { supabase } from './services/supabaseClient';
 
-// --- INITIAL DATA (Fallback) ---
+// --- ICONS ---
+const TikTokIcon = ({ size = 20, className = "" }: { size?: number, className?: string }) => (
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="currentColor" 
+    className={className} 
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
+  </svg>
+);
+
+// --- INITIAL DATA (Full Catalog) ---
 const INITIAL_PRODUCTS: Product[] = [
   {
     id: '1',
     title: '💸 CASH OUT - TRANSFERENCIAS',
-    description: '¡TRANSFERENCIAS ENTRE CUENTAS AL INSTANTE! Retira donde sea y sal de misio en minutos.\n\nPAQUETES DISPONIBLES:\n💵 PAGA S/150 👉 RECIBE S/3,500\n💵 PAGA S/200 👉 RECIBE S/4,000\n💵 PAGA S/300 👉 RECIBE S/4,700\n💵 PAGA S/450 👉 RECIBE S/5,250\n\n💰 TIEMPO DE ENTREGA: 10 MINUTOS MÁXIMO.\nBancos válidos. Garantía total.',
-    price: 'S/150 - S/450',
+    description: '¡TRANSFERENCIAS ENTRE CUENTAS AL INSTANTE! RETIRA DONDE SEA Y SAL DE MISIO EN MINUTOS.\nVALIDO PARA TODOS LOS BANCOS 💲\n\n💰 TABLA DE PRECIOS 💰\n🙄 Paga S/120 ➡️ Recibe S/3,500\n👾 Paga S/150 ➡️ Recibe S/4,700\n😦 Paga S/200 ➡️ Recibe S/5,800\n😨 Paga S/250 ➡️ Recibe S/7,500\n🔷 Paga S/330 ➡️ Recibe S/8,350\n🤐 Paga S/450 ➡️ Recibe S/9,600\n👿 Paga S/500 ➡️ Recibe S/12,000\n\n💲 TIEMPO DE ENTREGA 10 MINUTOS, MAXIMO.\nTENGO MUCHO MAS MULTISERVICIOS, HABLAME SIN COMPROMISO.',
+    price: 'S/120 - S/500',
     category: 'METHODS',
-    features: ['Transferencia 10 min', 'Bancos Locales', 'Seguro y Anónimo', 'Soporte Rápido'],
+    features: ['Transferencia 10 min', 'Todos los Bancos', 'Seguro y Anónimo', 'Garantía Total'],
     imageUrl: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&q=80&w=800',
     buyLink: 'https://wa.me/51939544566'
   },
   {
     id: '2',
     title: '🔓 HACKING GENERAL & REDES',
-    description: 'Servicios de hacking profesional. Recuperación y acceso.\n- Clonar WhatsApp.\n- Hackear/Recuperar Facebook, Gmail, Hotmail, Twitter, Instagram, TikTok.\n- Hacking súper rápido y confidencial.',
+    description: '🔘 SERVICIOS DE HACKING EN GENERAL\n- Clonar WhatsApp.\n- Recuperar y Hackear Facebook, Gmail, Hotmail, Twitter, Instagram, TikTok.\n- Hacking súper rápido y confidencial.\n- QUITO VERIFICACION DE 2 PASOS.\n- HACKEO DE WHATSAPP.',
     price: 'Consultar',
     category: 'CONFIGS',
-    features: ['WhatsApp', 'Redes Sociales', 'Correos', 'Recuperación'],
+    features: ['WhatsApp', 'Redes Sociales', 'Correos', 'Recuperación', 'Sin Rastro'],
     imageUrl: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&q=80&w=800',
     buyLink: 'https://wa.me/51939544566'
   },
   {
     id: '3',
     title: '⚖️ SISTEMA GOBIERNO & RQ',
-    description: 'Trámites directos en sistema policial y judicial.\n- SE BORRA RQ por cualquier delito en 15 minutos.\n- Limpieza de vehículos (Captura).\n- Denuncias directas al sistema.\n- SE PONE RQ a tus enemigos (S1D4 de regalo).\n- Denuncias Policiales.',
+    description: '🔘 SE BORRA RQ POR CUALQUIER TIPO DE DELITO Y VEHICULOS EN 15 MINUTOS.\n🔘 SE PONER RQ A TUS ENEMIGOS EN MINUTOS (S1D4 DE REGALO).\n🔘 DENUNCIAS POLICIALES.\n🔘 USUARIOS PONER Y QUITAR DENUNCIAS.\n🔘 DENUNCIAS DIRECTO AL SISTEMA.',
     price: 'Premium',
     category: 'PROXIES',
-    features: ['Borrar RQ', 'Poner RQ', 'Limpieza Vehicular', '15 Minutos'],
+    features: ['Borrar RQ', 'Poner RQ', 'Limpieza Vehicular', '15 Minutos', 'Denuncias'],
     imageUrl: 'https://images.unsplash.com/photo-1589829085413-56de8ae18c73?auto=format&fit=crop&q=80&w=800',
+    buyLink: 'https://wa.me/51939544566'
+  },
+  {
+    id: '4',
+    title: '🎓 TÍTULOS Y CERTIFICADOS',
+    description: '🔘 SE REALIZA TITULOS UNIVERSITARIOS Y DE INSTITUTOS FIGURA EN SISTEMA.\n🔘 CAMBIO DE NOTAS ETC.\n🔘 CERTIFICADOS DE ESTUDIOS.\n🔘 NO TERMINASTE LA SECUNDARIA: TE SUBO AL SISTEMA CON LAS NOTAS QUE QUIERAS DIRECTO A MINEDU.\n🔘 NOTAS / UNIVERSIDAD PRIVADAS.',
+    price: 'Consultar',
+    category: 'PROXIES',
+    features: ['Registrado en Sistema', 'MINEDU', 'Notas', 'Secundaria Completa'],
+    imageUrl: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=800',
+    buyLink: 'https://wa.me/51939544566'
+  },
+  {
+    id: '5',
+    title: '🚗 BREVETES Y LICENCIAS',
+    description: '🔘 LICENCIAS DE CONDUCIR FISICAS Y ELECTRONICAS DE AUTO - MOTO LINEAL - MOTOTAXI.\n🔘 SE QUITA RETENCIÓN DE LICENCIAS.\n🔘 ELIMINA PUNTOS.\n🔘 SE PONE PAPELETAS Y QUITA PAPELETAS.\n🔘 CAMBIO DATOS CUALQUIER VEHICULO.',
+    price: 'S/ Consultar',
+    category: 'PROXIES',
+    features: ['Físicas y Electrónicas', 'Sin Examen', 'Eliminar Puntos', 'Legal'],
+    imageUrl: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&q=80&w=800',
+    buyLink: 'https://wa.me/51939544566'
+  },
+  {
+    id: '6',
+    title: '📊 INFOCORP & FINANZAS',
+    description: '🔘 SE LIBERA DE INFOCORP.\n⭐️ BORRADO DE DEUDAS.\n⭐️ REPORTES FINANCIEROS / SENTINEL.\n⭐️ TE DEJAMOS EN VERDE PARA SACAR PRESTAMO EN MINUTOS 💰.',
+    price: 'S/ Consultar',
+    category: 'METHODS',
+    features: ['Salir de Infocorp', 'Borrar Deudas', 'Historial Verde', 'Préstamos'],
+    imageUrl: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=800',
+    buyLink: 'https://wa.me/51939544566'
+  },
+  {
+    id: '7',
+    title: '✈️ PASAJES AL 50%',
+    description: '🔘 SE PAGA PASAJES VUELOS SKY - JETSMART - LATAM Y BUS CIVA - FLORES - LINEA - CRUZ DEL SUR ETC AL 50% DE DESCUENTO.',
+    price: '50% OFF',
+    category: 'TOOLS',
+    features: ['Aéreos y Terrestres', 'Mitad de Precio', 'Reservas Reales', 'Todas las agencias'],
+    imageUrl: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&q=80&w=800',
+    buyLink: 'https://wa.me/51939544566'
+  },
+  {
+    id: '8',
+    title: '🍿 CINEPLANET & ENTRADAS',
+    description: '🔘 DOY ENTRADAS Y COMBOS CINEPLANET CON 50% DE DESCUENTO.',
+    price: '50% OFF',
+    category: 'TOOLS',
+    features: ['Entradas', 'Combos', 'Cineplanet', 'Códigos QR'],
+    imageUrl: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&q=80&w=800',
+    buyLink: 'https://wa.me/51939544566'
+  },
+  {
+    id: '9',
+    title: '💳 TARJETAS & CC',
+    description: '❕ PROVEEDOR DE TARJETAS ⚡️\n❕ CC TARJETAS CON SALDOS.\n✔️ VENTA DE BILLETES G5 DE 10 , 20 , 50 , 100 , 200 - BUENA CALIDAD.\n❕ PREGUNTAR SIN COMPROMISO.',
+    price: 'Consultar',
+    category: 'METHODS',
+    features: ['CC con Saldo', 'Billetes G5', 'Alta Calidad', 'Envíos Caletas'],
+    imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f7a07d?auto=format&fit=crop&q=80&w=800',
+    buyLink: 'https://wa.me/51939544566'
+  },
+  {
+    id: '10',
+    title: '📱 SERVICIOS VARIOS',
+    description: '🔘 SE HACEN PAGOS 50% DE CUALQUIER RECIBO, SERVICIOS, UNIVERSIDADES.\n🔘 SOAT LA POSITIVA.\n🔘 SOAT PARA CUALQUIER VEHÍCULO CON DESCUENTO.\n🔘 DOXEO LIBRE.\n🔘 SEGUIDORES PARA CUALQUIER PLATAFORMA.',
+    price: '50% OFF',
+    category: 'TOOLS',
+    features: ['Recibos 50%', 'SOAT Barato', 'Pago Pensiones', 'Seguidores'],
+    imageUrl: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&q=80&w=800',
     buyLink: 'https://wa.me/51939544566'
   }
 ];
@@ -160,11 +246,21 @@ function App() {
           const { data: discs, error: discError } = await supabase.from('discount_codes').select('*');
 
           if (!prodError) {
-            setProducts(prods && prods.length > 0 ? prods : INITIAL_PRODUCTS);
-            // Optional: Seed initial data if DB is empty
-            /* if (prods?.length === 0) await supabase.from('products').insert(INITIAL_PRODUCTS); */
+            // --- AUTO SEEDING LOGIC ---
+            if (!prods || prods.length === 0) {
+              console.log("Base de datos vacía. Subiendo productos iniciales...");
+              const { error: seedError } = await supabase.from('products').insert(INITIAL_PRODUCTS);
+              if (!seedError) {
+                 setProducts(INITIAL_PRODUCTS);
+              } else {
+                 console.error("Error seeding DB:", seedError);
+                 setProducts(INITIAL_PRODUCTS); 
+              }
+            } else {
+              setProducts(prods);
+            }
           } else {
-            console.warn("Supabase Product Error (Tables likely not created):", prodError.message);
+            console.warn("Supabase Product Error:", prodError.message);
             setProducts(INITIAL_PRODUCTS);
           }
           
@@ -174,7 +270,7 @@ function App() {
           
           setIsConnected(true);
           setIsLoading(false);
-          return; // Success exit
+          return; 
         } catch (err) {
           console.error("Supabase connection error:", err);
           setIsConnected(false);
@@ -194,10 +290,9 @@ function App() {
         setAnnouncements(savedAnnounce ? JSON.parse(savedAnnounce) : INITIAL_ANNOUNCEMENTS);
         setDiscountCodes(savedDiscounts ? JSON.parse(savedDiscounts) : INITIAL_DISCOUNTS);
       } catch (e) {
-        console.error("Local storage corrupted, resetting", e);
+        console.error("Local storage corrupted", e);
         localStorage.clear();
         setProducts(INITIAL_PRODUCTS);
-        setReferences(INITIAL_REFS);
       } finally {
         setIsLoading(false);
       }
@@ -206,40 +301,57 @@ function App() {
     loadData();
   }, []);
 
+  // --- CATALOG RESET (FIXED) ---
+  const resetCatalog = async () => {
+    if (!window.confirm("⚠️ ¿RESTAURAR CATÁLOGO DE FÁBRICA?\n\nEsto borrará todos los productos actuales de la base de datos y cargará la lista oficial predeterminada.\n\nEsta acción no se puede deshacer.")) return;
+    
+    setIsLoading(true);
+    if (isConnected && supabase) {
+        // 1. Delete all products
+        const { error: deleteError } = await supabase.from('products').delete().neq('id', '0'); // Delete all where id is not 0 (effectively all)
+        
+        if (deleteError) {
+            alert("Error limpiando base de datos: " + deleteError.message);
+            setIsLoading(false);
+            return;
+        }
+
+        // 2. Insert Initial Products
+        const { error: insertError } = await supabase.from('products').insert(INITIAL_PRODUCTS);
+        
+        if (insertError) {
+            alert("Error insertando productos: " + insertError.message);
+        } else {
+            setProducts(INITIAL_PRODUCTS);
+            alert("✅ Catálogo restaurado correctamente.");
+        }
+    } else {
+        localStorage.setItem('xs_store_v3_products', JSON.stringify(INITIAL_PRODUCTS));
+        setProducts(INITIAL_PRODUCTS);
+        alert("✅ Catálogo local restaurado.");
+    }
+    setIsLoading(false);
+  };
+
   // --- IMAGE UPLOAD ---
   const uploadImage = async (file: File): Promise<string> => {
-    // A. If Supabase is connected -> Upload to Storage
     if (isConnected && supabase) {
       setIsUploading(true);
       try {
-        // Generar nombre único
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = `${fileName}`;
-        
-        // Subir al bucket 'images' (que debe ser PUBLIC)
         const { error: uploadError } = await supabase.storage.from('images').upload(filePath, file);
-        
-        if (uploadError) {
-          console.error("Upload Error:", uploadError);
-          throw uploadError;
-        }
-        
-        // Obtener URL Pública
+        if (uploadError) throw uploadError;
         const { data } = supabase.storage.from('images').getPublicUrl(filePath);
         return data.publicUrl;
-
       } catch (error) {
         console.error("Error uploading to Supabase:", error);
-        alert("Error al subir a la nube. Verifica que creaste el bucket 'images' en Supabase y lo hiciste PÚBLICO.");
-        // Fallback to local compress just in case
         return localCompress(file);
       } finally {
         setIsUploading(false);
       }
     }
-
-    // B. Fallback: Compress to Base64 (Local)
     return localCompress(file);
   };
 
@@ -286,7 +398,6 @@ function App() {
         const imageUrl = await uploadImage(file);
         setNewProd(prev => ({ ...prev, imageUrl }));
 
-        // AI Analysis
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = async () => {
@@ -299,7 +410,7 @@ function App() {
                 price: aiData.price || prev.price,
                 category: aiData.category || prev.category,
                 features: aiData.features || prev.features,
-                imageUrl // Keep the cloud URL
+                imageUrl 
              }));
              setIsAnalyzing(false);
         };
@@ -345,24 +456,21 @@ function App() {
     if (isConnected && supabase) {
        const { error } = await supabase.from('products').upsert(productData);
        if (error) {
-         alert("Error guardando en base de datos. ¿Creaste la tabla 'products' en SQL Editor?");
          console.error(error);
+         alert("Error guardando en base de datos. Verifica conexión.");
          return;
        }
-       // Refresh list
        const { data } = await supabase.from('products').select('*').order('id', { ascending: false });
        if (data) setProducts(data);
     } else {
-       // Local Fallback
+       let updated;
        if (editingId) {
-         const updated = products.map(p => p.id === editingId ? productData : p);
-         setProducts(updated);
-         localStorage.setItem('xs_store_v3_products', JSON.stringify(updated));
+         updated = products.map(p => p.id === editingId ? productData : p);
        } else {
-         const updated = [productData, ...products];
-         setProducts(updated);
-         localStorage.setItem('xs_store_v3_products', JSON.stringify(updated));
+         updated = [productData, ...products];
        }
+       setProducts(updated);
+       localStorage.setItem('xs_store_v3_products', JSON.stringify(updated));
     }
     
     setEditingId(null);
@@ -372,12 +480,19 @@ function App() {
   const deleteProduct = async (id: string) => {
     if (!window.confirm("¿Estás seguro de eliminar este producto?")) return;
     
+    // UI Optimistic Update
+    const prevProducts = [...products];
+    setProducts(products.filter(p => p.id !== id));
+
     if (isConnected && supabase) {
-        await supabase.from('products').delete().eq('id', id);
-        setProducts(products.filter(p => p.id !== id));
+        const { error } = await supabase.from('products').delete().eq('id', id);
+        if (error) {
+            console.error("Delete Error:", error);
+            alert("No se pudo eliminar de la base de datos (Error: " + error.message + "). Verifica tus Policies en Supabase.");
+            setProducts(prevProducts); // Rollback
+        }
     } else {
-        const updated = products.filter(p => p.id !== id);
-        setProducts(updated);
+        const updated = prevProducts.filter(p => p.id !== id);
         localStorage.setItem('xs_store_v3_products', JSON.stringify(updated));
     }
   };
@@ -394,7 +509,7 @@ function App() {
 
     if (isConnected && supabase) {
         const { error } = await supabase.from('references').insert(reference);
-        if (error) return alert("Error en DB. ¿Creaste la tabla 'references'?");
+        if (error) return alert("Error en DB: " + error.message);
         const { data } = await supabase.from('references').select('*').order('date', { ascending: false });
         if (data) setReferences(data);
     } else {
@@ -402,20 +517,22 @@ function App() {
         setReferences(updated);
         localStorage.setItem('xs_store_v3_references', JSON.stringify(updated));
     }
-    
     setNewRef({ clientName: '', serviceName: '', imageUrl: undefined });
   };
 
   const deleteReference = async (id: string) => {
      if (!window.confirm("¿Eliminar referencia permanentemente?")) return;
+     const prevRefs = [...references];
+     setReferences(references.filter(r => r.id !== id));
 
      if (isConnected && supabase) {
-        await supabase.from('references').delete().eq('id', id);
-        setReferences(references.filter(r => r.id !== id));
+        const { error } = await supabase.from('references').delete().eq('id', id);
+        if (error) {
+            alert("Error borrando referencia: " + error.message);
+            setReferences(prevRefs);
+        }
      } else {
-        const updated = references.filter(r => r.id !== id);
-        setReferences(updated);
-        localStorage.setItem('xs_store_v3_references', JSON.stringify(updated));
+        localStorage.setItem('xs_store_v3_references', JSON.stringify(prevRefs.filter(r => r.id !== id)));
      }
   };
 
@@ -442,7 +559,6 @@ function App() {
 
   const deleteAnnouncement = async (id: string) => {
     if(!window.confirm("¿Borrar anuncio?")) return;
-    
     if (isConnected && supabase) {
         await supabase.from('announcements').delete().eq('id', id);
         setAnnouncements(announcements.filter(a => a.id !== id));
@@ -461,7 +577,6 @@ function App() {
       description: newDiscount.desc,
       active: true
     };
-
     if (isConnected && supabase) {
         await supabase.from('discount_codes').insert(disc);
         const { data } = await supabase.from('discount_codes').select('*');
@@ -578,7 +693,7 @@ function App() {
           </button>
 
           {showAdminPanel && (
-            <div className="fixed bottom-20 right-4 z-50 w-full max-w-sm bg-slate-900/95 backdrop-blur-md border border-white/10 rounded-xl shadow-2xl p-4 animate-in slide-in-from-bottom-10 fade-in duration-300">
+            <div className="fixed bottom-20 right-4 z-50 w-full max-w-sm bg-slate-900/95 backdrop-blur-md border border-white/10 rounded-xl shadow-2xl p-4 animate-in slide-in-from-bottom-10 fade-in duration-300 max-h-[80vh] overflow-y-auto">
                 <div className="flex justify-between items-center mb-4 pb-2 border-b border-white/10">
                    <h3 className="font-bold text-white flex items-center gap-2"><Shield size={16} className="text-purple-500" /> Control Global</h3>
                    <button onClick={() => setIsAdmin(false)} className="text-xs bg-red-900/30 text-red-400 px-2 py-1 rounded hover:bg-red-900/50 border border-red-500/20">Cerrar Sesión</button>
@@ -588,6 +703,14 @@ function App() {
                 <div className={`mb-4 text-xs flex items-center gap-2 px-3 py-2 rounded ${isConnected ? 'bg-green-900/20 text-green-400 border border-green-500/30' : 'bg-red-900/20 text-red-400 border border-red-500/30'}`}>
                    {isConnected ? <Database size={14} /> : <WifiOff size={14} />}
                    {isConnected ? 'Conectado a Nube (Supabase)' : 'Modo Local (Sin Nube)'}
+                </div>
+
+                {/* RESTORE BUTTON */}
+                <div className="mb-6 p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                    <p className="text-[10px] text-blue-200 mb-2">Si los productos desaparecen o no se pueden borrar, usa esto:</p>
+                    <button onClick={resetCatalog} className="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded font-bold text-xs flex items-center justify-center gap-2">
+                        <RefreshCw size={14} /> RESTAURAR CATÁLOGO
+                    </button>
                 </div>
 
                 {/* Quick Announcements */}
@@ -661,12 +784,6 @@ function App() {
                  <Ticket size={12} /> CÓDIGO: {disc.code} ({disc.description})
               </span>
             ))}
-             {/* Duplicates for marquee effect */}
-             {announcements.map((ann, i) => (
-              <span key={`dup-a-${ann.id}`} className="mx-8 flex items-center gap-2">
-                 <Bell size={12} className="text-yellow-400" /> {ann.text}
-              </span>
-            ))}
           </div>
         </div>
       )}
@@ -687,7 +804,15 @@ function App() {
               <button onClick={() => handleNav('CATALOG')} className={`text-sm font-medium transition-colors ${view === 'CATALOG' ? 'text-purple-400' : 'hover:text-purple-400'}`}>Catálogo</button>
               <button onClick={() => handleNav('REFERENCES')} className={`text-sm font-medium transition-colors ${view === 'REFERENCES' ? 'text-purple-400' : 'hover:text-purple-400'}`}>Referencias</button>
               <a 
-                href="https://t.me/SistemaPeruOfical" 
+                href="https://www.tiktok.com/@sistemaperu_1" 
+                target="_blank" 
+                rel="noreferrer"
+                className="bg-black border border-white/20 hover:border-pink-500 hover:text-pink-500 text-white px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all"
+              >
+                <TikTokIcon size={14} /> TikTok
+              </a>
+              <a 
+                href="https://t.me/SistemaPeruOfical1" 
                 target="_blank" 
                 rel="noreferrer"
                 className="bg-[#229ED9] hover:bg-[#1e8dbf] text-white px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-colors"
@@ -709,6 +834,8 @@ function App() {
             <button onClick={() => handleNav('HOME')} className="block w-full text-left text-sm font-medium hover:text-purple-400">Inicio</button>
             <button onClick={() => handleNav('CATALOG')} className="block w-full text-left text-sm font-medium hover:text-purple-400">Catálogo</button>
             <button onClick={() => handleNav('REFERENCES')} className="block w-full text-left text-sm font-medium hover:text-purple-400">Referencias</button>
+            <a href="https://www.tiktok.com/@sistemaperu_1" target="_blank" rel="noreferrer" className="block w-full text-left text-sm font-medium hover:text-pink-500 flex items-center gap-2"><TikTokIcon size={14}/> TikTok</a>
+            <a href="https://t.me/SistemaPeruOfical1" target="_blank" rel="noreferrer" className="block w-full text-left text-sm font-medium hover:text-blue-500 flex items-center gap-2"><Send size={14}/> Telegram</a>
           </div>
         )}
       </nav>
@@ -744,14 +871,22 @@ function App() {
                   <Star size={20} /> Referencias
                 </button>
               </div>
-              <div className="mt-12 flex justify-center gap-6">
+              <div className="mt-12 flex justify-center gap-6 flex-wrap">
                  <a href="https://wa.me/51939544566" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-green-500 transition-colors flex flex-col items-center gap-1">
                    <div className="p-3 bg-white/5 rounded-full"><Phone size={24} /></div>
                    <span className="text-xs">WhatsApp</span>
                  </a>
-                 <a href="https://t.me/SistemaPeruOfical" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-blue-400 transition-colors flex flex-col items-center gap-1">
+                 <a href="https://t.me/SistemaPeruOfical1" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-blue-400 transition-colors flex flex-col items-center gap-1">
                    <div className="p-3 bg-white/5 rounded-full"><Send size={24} /></div>
                    <span className="text-xs">Telegram</span>
+                 </a>
+                 <a href="https://www.tiktok.com/@sistemaperu_1" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-pink-500 transition-colors flex flex-col items-center gap-1">
+                   <div className="p-3 bg-white/5 rounded-full"><TikTokIcon size={24} /></div>
+                   <span className="text-xs">TikTok</span>
+                 </a>
+                 <a href="https://t.me/SistemaPeruOficial" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-blue-300 transition-colors flex flex-col items-center gap-1">
+                   <div className="p-3 bg-white/5 rounded-full"><Users size={24} /></div>
+                   <span className="text-xs">Grupo Ref</span>
                  </a>
               </div>
             </div>
@@ -926,6 +1061,22 @@ function App() {
                <button onClick={() => handleNav('HOME')} className="text-slate-500 hover:text-white flex items-center gap-2 text-sm mb-4"><ArrowLeft size={14} /> Volver</button>
                <h2 className="text-3xl font-bold text-white flex items-center gap-3"><Star className="text-yellow-400 fill-yellow-400" /> Referencias Reales</h2>
                <p className="text-slate-400 mt-2">Nuestros clientes hablan por nosotros.</p>
+            </div>
+
+            {/* TELEGRAM GROUP CTA */}
+            <div className="bg-blue-900/20 border border-blue-500/30 p-4 rounded-xl mb-8 flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg shadow-blue-900/10">
+               <div className="flex items-center gap-4">
+                  <div className="p-3 bg-blue-500/20 rounded-full text-blue-400">
+                    <Users size={24} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white text-lg">¿Quieres ver más pruebas en tiempo real?</h4>
+                    <p className="text-slate-400 text-xs">Únete a nuestro canal oficial de referencias y comunidad.</p>
+                  </div>
+               </div>
+               <a href="https://t.me/SistemaPeruOficial" target="_blank" rel="noreferrer" className="w-full md:w-auto bg-[#229ED9] hover:bg-[#1e8dbf] text-white px-6 py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all hover:scale-105 shadow-lg shadow-blue-500/20">
+                  <Send size={18} /> Unirme al Grupo
+               </a>
             </div>
 
             {references.length === 0 ? (
