@@ -22,12 +22,11 @@ import {
   Bell,
   Ticket,
   Lock,
-  LogOut,
+  Database,
+  WifiOff,
   ChevronDown,
   ChevronUp,
-  Settings,
-  Database,
-  WifiOff
+  Settings
 } from 'lucide-react';
 import { Product, Reference, Category, CATEGORIES, Announcement, DiscountCode } from './types';
 import { analyzeProductImage } from './services/geminiService';
@@ -160,13 +159,12 @@ function App() {
           const { data: anns, error: annError } = await supabase.from('announcements').select('*').order('createdAt', { ascending: false });
           const { data: discs, error: discError } = await supabase.from('discount_codes').select('*');
 
-          if (!prodError && prods) {
-            setProducts(prods.length > 0 ? prods : INITIAL_PRODUCTS);
-            if (prods.length === 0) {
-                // Seed initial data if DB is empty
-                /* await supabase.from('products').insert(INITIAL_PRODUCTS); */
-            }
+          if (!prodError) {
+            setProducts(prods && prods.length > 0 ? prods : INITIAL_PRODUCTS);
+            // Optional: Seed initial data if DB is empty
+            /* if (prods?.length === 0) await supabase.from('products').insert(INITIAL_PRODUCTS); */
           } else {
+            console.warn("Supabase Product Error (Tables likely not created):", prodError.message);
             setProducts(INITIAL_PRODUCTS);
           }
           
@@ -208,47 +206,44 @@ function App() {
     loadData();
   }, []);
 
-  // --- SAVE HELPERS (Supabase vs Local) ---
-  const persistProducts = async (newProducts: Product[]) => {
-    setProducts(newProducts);
-    if (isConnected && supabase) {
-       // Upsert logic is handled individually in save functions usually, 
-       // but for bulk local-like updates we might need to be careful.
-       // For this simple app, we'll rely on the individual action functions to update DB.
-    } else {
-      localStorage.setItem('xs_store_v3_products', JSON.stringify(newProducts));
-    }
-  };
-  // (Helper for local syncing if needed)
-
   // --- IMAGE UPLOAD ---
   const uploadImage = async (file: File): Promise<string> => {
     // A. If Supabase is connected -> Upload to Storage
     if (isConnected && supabase) {
       setIsUploading(true);
       try {
+        // Generar nombre único
         const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}.${fileExt}`;
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = `${fileName}`;
         
+        // Subir al bucket 'images' (que debe ser PUBLIC)
         const { error: uploadError } = await supabase.storage.from('images').upload(filePath, file);
         
         if (uploadError) {
+          console.error("Upload Error:", uploadError);
           throw uploadError;
         }
         
+        // Obtener URL Pública
         const { data } = supabase.storage.from('images').getPublicUrl(filePath);
         return data.publicUrl;
+
       } catch (error) {
         console.error("Error uploading to Supabase:", error);
-        alert("Error al subir a la nube. Usando modo local.");
-        // Fallback to local compress
+        alert("Error al subir a la nube. Verifica que creaste el bucket 'images' en Supabase y lo hiciste PÚBLICO.");
+        // Fallback to local compress just in case
+        return localCompress(file);
       } finally {
         setIsUploading(false);
       }
     }
 
     // B. Fallback: Compress to Base64 (Local)
+    return localCompress(file);
+  };
+
+  const localCompress = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -268,7 +263,7 @@ function App() {
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
-  };
+  }
 
   // --- ACTIONS ---
 
@@ -291,8 +286,7 @@ function App() {
         const imageUrl = await uploadImage(file);
         setNewProd(prev => ({ ...prev, imageUrl }));
 
-        // AI Analysis (Needs base64, so we might need to read file again if url is remote)
-        // For simplicity, we just convert file to base64 for AI analysis locally
+        // AI Analysis
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = async () => {
@@ -350,11 +344,16 @@ function App() {
 
     if (isConnected && supabase) {
        const { error } = await supabase.from('products').upsert(productData);
-       if (error) return alert("Error guardando en base de datos");
+       if (error) {
+         alert("Error guardando en base de datos. ¿Creaste la tabla 'products' en SQL Editor?");
+         console.error(error);
+         return;
+       }
        // Refresh list
        const { data } = await supabase.from('products').select('*').order('id', { ascending: false });
        if (data) setProducts(data);
     } else {
+       // Local Fallback
        if (editingId) {
          const updated = products.map(p => p.id === editingId ? productData : p);
          setProducts(updated);
@@ -394,7 +393,8 @@ function App() {
     };
 
     if (isConnected && supabase) {
-        await supabase.from('references').insert(reference);
+        const { error } = await supabase.from('references').insert(reference);
+        if (error) return alert("Error en DB. ¿Creaste la tabla 'references'?");
         const { data } = await supabase.from('references').select('*').order('date', { ascending: false });
         if (data) setReferences(data);
     } else {
@@ -587,7 +587,7 @@ function App() {
                 {/* Connection Status */}
                 <div className={`mb-4 text-xs flex items-center gap-2 px-3 py-2 rounded ${isConnected ? 'bg-green-900/20 text-green-400 border border-green-500/30' : 'bg-red-900/20 text-red-400 border border-red-500/30'}`}>
                    {isConnected ? <Database size={14} /> : <WifiOff size={14} />}
-                   {isConnected ? 'Conectado a Base de Datos (Nube)' : 'Modo Local (Sin Nube)'}
+                   {isConnected ? 'Conectado a Nube (Supabase)' : 'Modo Local (Sin Nube)'}
                 </div>
 
                 {/* Quick Announcements */}
@@ -811,7 +811,7 @@ function App() {
                   <div className="space-y-4">
                     <button onClick={() => prodFileRef.current?.click()} className="w-full h-32 bg-black/30 border-2 border-dashed border-white/10 hover:border-purple-500/50 rounded-lg flex flex-col items-center justify-center text-slate-400 relative overflow-hidden group">
                       {isUploading ? <Loader2 className="animate-spin" /> : (newProd.imageUrl ? <img src={newProd.imageUrl} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity" /> : <Upload size={24} className="mb-2" />)}
-                      <span className="relative z-10 text-xs font-bold">{isUploading ? 'Subiendo a Nube...' : (newProd.imageUrl ? 'Cambiar Imagen' : 'Subir Imagen (IA)')}</span>
+                      <span className="relative z-10 text-xs font-bold">{isUploading ? 'Subiendo a Nube...' : (newProd.imageUrl ? 'Cambiar Imagen' : 'Subir Imagen')}</span>
                     </button>
                     <input type="file" ref={prodFileRef} className="hidden" accept="image/*" onChange={handleProdImage} />
                     
