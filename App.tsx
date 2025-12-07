@@ -25,12 +25,15 @@ import {
   LogOut,
   ChevronDown,
   ChevronUp,
-  Settings
+  Settings,
+  Database,
+  WifiOff
 } from 'lucide-react';
 import { Product, Reference, Category, CATEGORIES, Announcement, DiscountCode } from './types';
 import { analyzeProductImage } from './services/geminiService';
+import { supabase } from './services/supabaseClient';
 
-// --- INITIAL DATA ---
+// --- INITIAL DATA (Fallback) ---
 const INITIAL_PRODUCTS: Product[] = [
   {
     id: '1',
@@ -61,120 +64,9 @@ const INITIAL_PRODUCTS: Product[] = [
     features: ['Borrar RQ', 'Poner RQ', 'Limpieza Vehicular', '15 Minutos'],
     imageUrl: 'https://images.unsplash.com/photo-1589829085413-56de8ae18c73?auto=format&fit=crop&q=80&w=800',
     buyLink: 'https://wa.me/51939544566'
-  },
-  {
-    id: '4',
-    title: '🧾 PAGOS DE SERVICIOS 50%',
-    description: 'Paga la mitad de tus deudas.\n- Se hacen pagos al 50% de cualquier recibo (Luz, Agua, Teléfono).\n- Pagos de Universidades e Institutos.\n- Ahorra dinero hoy mismo.',
-    price: '50% OFF',
-    category: 'METHODS',
-    features: ['Recibos', 'Universidades', 'Servicios', 'Ahorro Total'],
-    imageUrl: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=800',
-    buyLink: 'https://wa.me/51939544566'
-  },
-  {
-    id: '5',
-    title: '🎓 TÍTULOS & NOTAS (MINEDU)',
-    description: 'Soluciones académicas registradas en sistema.\n- Títulos Universitarios y de Institutos.\n- Certificados de estudios.\n- Cambio de notas.\n- Te subo al sistema MINEDU con notas directas (Secundaria completa).',
-    price: 'Consultar',
-    category: 'PROXIES',
-    features: ['Registro MINEDU', 'Títulos', 'Certificados', 'Notas'],
-    imageUrl: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=800',
-    buyLink: 'https://wa.me/51939544566'
-  },
-  {
-    id: '6',
-    title: '📉 LIMPIEZA INFOCORP & DEUDAS',
-    description: 'Sal de la lista negra y reactiva tu vida financiera.\n- Se libera de INFOCORP.\n- Borrado de deudas bancarias.\n- Reportes financieros / Sentinel.\n- Te dejamos en VERDE para sacar préstamos en minutos.',
-    price: 'Variable',
-    category: 'METHODS',
-    features: ['Infocorp Verde', 'Borrar Deudas', 'Sentinel', 'Préstamos'],
-    imageUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=800',
-    buyLink: 'https://wa.me/51939544566'
-  },
-  {
-    id: '7',
-    title: '🚗 BREVETES & LICENCIAS',
-    description: 'Licencias de conducir legales y rápidas.\n- Físicas y Electrónicas (Auto, Moto Lineal, Mototaxi).\n- Se quita retención de licencias.\n- Elimina puntos del récord.\n- Cambio de datos de cualquier vehículo.',
-    price: 'Consultar',
-    category: 'PROXIES',
-    features: ['Sin Examen', 'Físico/Virtual', 'Elimina Puntos', 'MTC'],
-    imageUrl: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&q=80&w=800',
-    buyLink: 'https://wa.me/51939544566'
-  },
-  {
-    id: '8',
-    title: '🛡️ SOAT & PAPELETAS',
-    description: 'Soluciones de tránsito.\n- SOAT La Positiva para cualquier vehículo con descuento.\n- Se ponen papeletas.\n- Se quitan papeletas del sistema.',
-    price: 'Económico',
-    category: 'PROXIES',
-    features: ['SOAT Barato', 'Borrar Papeletas', 'Poner Multas', 'Tránsito'],
-    imageUrl: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&q=80&w=800',
-    buyLink: 'https://wa.me/51939544566'
-  },
-  {
-    id: '9',
-    title: '🍿 CINEPLANET & ENTRETENIMIENTO',
-    description: 'Disfruta del cine a mitad de precio.\n- Doy entradas y combos Cineplanet con 50% de descuento.\n- Packs corporativos y personales.',
-    price: '50% OFF',
-    category: 'METHODS',
-    features: ['Entradas', 'Combos', 'Cineplanet', 'Descuentos'],
-    imageUrl: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&q=80&w=800',
-    buyLink: 'https://wa.me/51939544566'
-  },
-  {
-    id: '10',
-    title: '✈️ PASAJES AÉREOS & TERRESTRES',
-    description: 'Viaja por todo el Perú barato.\n- Vuelos: Sky, Jetsmart, Latam.\n- Buses: Civa, Flores, Linea, Cruz del Sur, etc.\n- Todo al 50% de descuento.',
-    price: '50% OFF',
-    category: 'METHODS',
-    features: ['Vuelos', 'Buses', 'Viajes', 'Turismo'],
-    imageUrl: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&q=80&w=800',
-    buyLink: 'https://wa.me/51939544566'
-  },
-  {
-    id: '11',
-    title: '👥 SEGUIDORES & REDES',
-    description: 'Potencia tu imagen digital.\n- Seguidores para cualquier plataforma (IG, TikTok, FB).\n- Likes, Vistas y Comentarios.\n- Servicio estable y garantizado.',
-    price: 'Consultar',
-    category: 'TOOLS',
-    features: ['Seguidores Reales', 'Todas las Redes', 'Likes', 'Vistas'],
-    imageUrl: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&q=80&w=800',
-    buyLink: 'https://wa.me/51939544566'
-  },
-  {
-    id: '12',
-    title: '💳 TARJETAS & SALDOS (CC)',
-    description: 'Proveedor directo de material.\n- CC Tarjetas con saldos.\n- Venta de datos.\n- Preguntar sin compromiso.',
-    price: 'Variable',
-    category: 'TOOLS',
-    features: ['CCs Lives', 'Saldos Altos', 'Material Fresco'],
-    imageUrl: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&q=80&w=800',
-    buyLink: 'https://wa.me/51939544566'
-  },
-  {
-    id: '13',
-    title: '💵 BILLETES G5 PREMIUM',
-    description: 'Venta de billetes G5 de alta calidad. Pasan pruebas básicas.\n- Denominaciones: 10, 20, 50, 100, 200.\n- Excelente textura y acabado. Envíos discretos.',
-    price: 'Consultar',
-    category: 'TOOLS',
-    features: ['Calidad G5', 'Textura Real', 'Envíos Perú', 'Discreto'],
-    imageUrl: 'https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?auto=format&fit=crop&q=80&w=800',
-    buyLink: 'https://wa.me/51939544566'
-  },
-  {
-    id: '14',
-    title: '⚡ OTROS SERVICIOS',
-    description: 'Soluciones varias:\n- Quito verificación de 2 pasos.\n- Doxeo libre.\n- Usuarios para poner y quitar denuncias.\n- Sistemas del gobierno peruano.',
-    price: 'Consultar',
-    category: 'TOOLS',
-    features: ['Bypassing', 'Doxeo', 'Denuncias', 'Sistemas'],
-    imageUrl: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=800',
-    buyLink: 'https://wa.me/51939544566'
   }
 ];
 
-// Start with EMPTY references to ensure cleaner state after reset
 const INITIAL_REFS: Reference[] = [];
 
 const INITIAL_ANNOUNCEMENTS: Announcement[] = [
@@ -204,25 +96,22 @@ function App() {
   const [loginPassword, setLoginPassword] = useState('');
   const [view, setView] = useState<ViewState>('HOME');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   
-  // Persistence State - Version 3 for clean references
-  const STORAGE_KEY_PRODS = 'xs_store_v3_products';
-  const STORAGE_KEY_REFS = 'xs_store_v3_references';
-  const STORAGE_KEY_ANNOUNCE = 'xs_store_v3_announcements';
-  const STORAGE_KEY_DISCOUNTS = 'xs_store_v3_discounts';
+  // Loading & Connection States
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isConnected, setIsConnected] = useState(false); // Supabase Connection
 
+  // Data State
   const [products, setProducts] = useState<Product[]>([]);
   const [references, setReferences] = useState<Reference[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
 
   // Edit/Create State
   const [editingId, setEditingId] = useState<string | null>(null);
   const [filter, setFilter] = useState<Category | 'ALL'>('ALL');
-  
-  // View State (See More)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   // Form State
@@ -243,7 +132,6 @@ function App() {
   // --- SHORTCUT ---
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // ALT + 5 to toggle Admin Login
       if (e.altKey && e.key === '5') {
         if (isAdmin) {
           if(window.confirm("¿Cerrar sesión de administrador?")) {
@@ -259,61 +147,108 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isAdmin]);
 
-  // --- PERSISTENCE ---
-  // Load on mount
+  // --- LOAD DATA (Supabase vs Local) ---
   useEffect(() => {
-    const savedProds = localStorage.getItem(STORAGE_KEY_PRODS);
-    const savedRefs = localStorage.getItem(STORAGE_KEY_REFS);
-    const savedAnnounce = localStorage.getItem(STORAGE_KEY_ANNOUNCE);
-    const savedDiscounts = localStorage.getItem(STORAGE_KEY_DISCOUNTS);
-    
-    if (savedProds) {
-      setProducts(JSON.parse(savedProds));
-    } else {
-      setProducts(INITIAL_PRODUCTS);
-    }
+    const loadData = async () => {
+      setIsLoading(true);
+      
+      // 1. Try Supabase
+      if (supabase) {
+        try {
+          const { data: prods, error: prodError } = await supabase.from('products').select('*').order('id', { ascending: false });
+          const { data: refs, error: refError } = await supabase.from('references').select('*').order('date', { ascending: false });
+          const { data: anns, error: annError } = await supabase.from('announcements').select('*').order('createdAt', { ascending: false });
+          const { data: discs, error: discError } = await supabase.from('discount_codes').select('*');
 
-    if (savedRefs) {
-      setReferences(JSON.parse(savedRefs));
-    } else {
-      setReferences(INITIAL_REFS);
-    }
+          if (!prodError && prods) {
+            setProducts(prods.length > 0 ? prods : INITIAL_PRODUCTS);
+            if (prods.length === 0) {
+                // Seed initial data if DB is empty
+                /* await supabase.from('products').insert(INITIAL_PRODUCTS); */
+            }
+          } else {
+            setProducts(INITIAL_PRODUCTS);
+          }
+          
+          if (!refError && refs) setReferences(refs);
+          if (!annError && anns) setAnnouncements(anns);
+          if (!discError && discs) setDiscountCodes(discs);
+          
+          setIsConnected(true);
+          setIsLoading(false);
+          return; // Success exit
+        } catch (err) {
+          console.error("Supabase connection error:", err);
+          setIsConnected(false);
+        }
+      }
 
-    if (savedAnnounce) {
-      setAnnouncements(JSON.parse(savedAnnounce));
-    } else {
-      setAnnouncements(INITIAL_ANNOUNCEMENTS);
-    }
+      // 2. Fallback to LocalStorage
+      console.log("Using LocalStorage Fallback");
+      try {
+        const savedProds = localStorage.getItem('xs_store_v3_products');
+        const savedRefs = localStorage.getItem('xs_store_v3_references');
+        const savedAnnounce = localStorage.getItem('xs_store_v3_announcements');
+        const savedDiscounts = localStorage.getItem('xs_store_v3_discounts');
 
-    if (savedDiscounts) {
-      setDiscountCodes(JSON.parse(savedDiscounts));
-    } else {
-      setDiscountCodes(INITIAL_DISCOUNTS);
-    }
+        setProducts(savedProds ? JSON.parse(savedProds) : INITIAL_PRODUCTS);
+        setReferences(savedRefs ? JSON.parse(savedRefs) : INITIAL_REFS);
+        setAnnouncements(savedAnnounce ? JSON.parse(savedAnnounce) : INITIAL_ANNOUNCEMENTS);
+        setDiscountCodes(savedDiscounts ? JSON.parse(savedDiscounts) : INITIAL_DISCOUNTS);
+      } catch (e) {
+        console.error("Local storage corrupted, resetting", e);
+        localStorage.clear();
+        setProducts(INITIAL_PRODUCTS);
+        setReferences(INITIAL_REFS);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    setIsLoaded(true);
+    loadData();
   }, []);
 
-  // Save on change (only if loaded)
-  useEffect(() => {
-    if (isLoaded) localStorage.setItem(STORAGE_KEY_PRODS, JSON.stringify(products));
-  }, [products, isLoaded]);
+  // --- SAVE HELPERS (Supabase vs Local) ---
+  const persistProducts = async (newProducts: Product[]) => {
+    setProducts(newProducts);
+    if (isConnected && supabase) {
+       // Upsert logic is handled individually in save functions usually, 
+       // but for bulk local-like updates we might need to be careful.
+       // For this simple app, we'll rely on the individual action functions to update DB.
+    } else {
+      localStorage.setItem('xs_store_v3_products', JSON.stringify(newProducts));
+    }
+  };
+  // (Helper for local syncing if needed)
 
-  useEffect(() => {
-    if (isLoaded) localStorage.setItem(STORAGE_KEY_REFS, JSON.stringify(references));
-  }, [references, isLoaded]);
+  // --- IMAGE UPLOAD ---
+  const uploadImage = async (file: File): Promise<string> => {
+    // A. If Supabase is connected -> Upload to Storage
+    if (isConnected && supabase) {
+      setIsUploading(true);
+      try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        const filePath = `${fileName}`;
+        
+        const { error: uploadError } = await supabase.storage.from('images').upload(filePath, file);
+        
+        if (uploadError) {
+          throw uploadError;
+        }
+        
+        const { data } = supabase.storage.from('images').getPublicUrl(filePath);
+        return data.publicUrl;
+      } catch (error) {
+        console.error("Error uploading to Supabase:", error);
+        alert("Error al subir a la nube. Usando modo local.");
+        // Fallback to local compress
+      } finally {
+        setIsUploading(false);
+      }
+    }
 
-  useEffect(() => {
-    if (isLoaded) localStorage.setItem(STORAGE_KEY_ANNOUNCE, JSON.stringify(announcements));
-  }, [announcements, isLoaded]);
-
-  useEffect(() => {
-    if (isLoaded) localStorage.setItem(STORAGE_KEY_DISCOUNTS, JSON.stringify(discountCodes));
-  }, [discountCodes, isLoaded]);
-
-
-  // --- IMAGE HELPERS ---
-  const compressImage = async (file: File): Promise<string> => {
+    // B. Fallback: Compress to Base64 (Local)
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -353,23 +288,29 @@ function App() {
       setIsAnalyzing(true);
       try {
         const file = e.target.files[0];
-        const compressedBase64 = await compressImage(file);
-        setNewProd(prev => ({ ...prev, imageUrl: compressedBase64 }));
+        const imageUrl = await uploadImage(file);
+        setNewProd(prev => ({ ...prev, imageUrl }));
 
-        // AI Analysis
-        const aiData = await analyzeProductImage(compressedBase64);
-        setNewProd(prev => ({
-          ...prev,
-          title: aiData.title || prev.title,
-          description: aiData.description || prev.description,
-          price: aiData.price || prev.price,
-          category: aiData.category || prev.category,
-          features: aiData.features || prev.features,
-          imageUrl: compressedBase64
-        }));
+        // AI Analysis (Needs base64, so we might need to read file again if url is remote)
+        // For simplicity, we just convert file to base64 for AI analysis locally
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = async () => {
+             const base64 = reader.result as string;
+             const aiData = await analyzeProductImage(base64);
+             setNewProd(prev => ({
+                ...prev,
+                title: aiData.title || prev.title,
+                description: aiData.description || prev.description,
+                price: aiData.price || prev.price,
+                category: aiData.category || prev.category,
+                features: aiData.features || prev.features,
+                imageUrl // Keep the cloud URL
+             }));
+             setIsAnalyzing(false);
+        };
       } catch (err) {
         console.error("Error processing image", err);
-      } finally {
         setIsAnalyzing(false);
       }
     }
@@ -377,8 +318,10 @@ function App() {
 
   const handleRefImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
-      const compressedBase64 = await compressImage(e.target.files[0]);
-      setNewRef({ ...newRef, imageUrl: compressedBase64 });
+      setIsUploading(true);
+      const imageUrl = await uploadImage(e.target.files[0]);
+      setNewRef({ ...newRef, imageUrl });
+      setIsUploading(false);
     }
   };
 
@@ -391,46 +334,56 @@ function App() {
     setFeatureInput('');
   };
 
-  const saveProduct = () => {
+  const saveProduct = async () => {
     if (!newProd.title || !newProd.price) return alert("Título y Precio requeridos");
 
-    if (editingId) {
-      // Update existing
-      setProducts(products.map(p => p.id === editingId ? { ...p, ...newProd } as Product : p));
-      setEditingId(null);
+    const productData: Product = {
+      id: editingId || Date.now().toString(),
+      title: newProd.title!,
+      description: newProd.description || '',
+      price: newProd.price!,
+      category: newProd.category as Category || 'CONFIGS',
+      features: newProd.features || [],
+      imageUrl: newProd.imageUrl,
+      buyLink: 'https://wa.me/51939544566'
+    };
+
+    if (isConnected && supabase) {
+       const { error } = await supabase.from('products').upsert(productData);
+       if (error) return alert("Error guardando en base de datos");
+       // Refresh list
+       const { data } = await supabase.from('products').select('*').order('id', { ascending: false });
+       if (data) setProducts(data);
     } else {
-      // Create new
-      const product: Product = {
-        id: Date.now().toString(),
-        title: newProd.title!,
-        description: newProd.description || '',
-        price: newProd.price!,
-        category: newProd.category as Category || 'CONFIGS',
-        features: newProd.features || [],
-        imageUrl: newProd.imageUrl,
-        buyLink: 'https://wa.me/51939544566'
-      };
-      setProducts([product, ...products]);
+       if (editingId) {
+         const updated = products.map(p => p.id === editingId ? productData : p);
+         setProducts(updated);
+         localStorage.setItem('xs_store_v3_products', JSON.stringify(updated));
+       } else {
+         const updated = [productData, ...products];
+         setProducts(updated);
+         localStorage.setItem('xs_store_v3_products', JSON.stringify(updated));
+       }
     }
     
-    // Reset Form
-    setNewProd({ title: '', price: '', description: '', category: 'CONFIGS', features: [], imageUrl: undefined });
-  };
-
-  const startEdit = (product: Product) => {
-    setEditingId(product.id);
-    setNewProd({ ...product });
-    setView('CATALOG');
-    // Scroll to form
-    setTimeout(() => formTopRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-  };
-
-  const cancelEdit = () => {
     setEditingId(null);
     setNewProd({ title: '', price: '', description: '', category: 'CONFIGS', features: [], imageUrl: undefined });
   };
 
-  const createReference = () => {
+  const deleteProduct = async (id: string) => {
+    if (!window.confirm("¿Estás seguro de eliminar este producto?")) return;
+    
+    if (isConnected && supabase) {
+        await supabase.from('products').delete().eq('id', id);
+        setProducts(products.filter(p => p.id !== id));
+    } else {
+        const updated = products.filter(p => p.id !== id);
+        setProducts(updated);
+        localStorage.setItem('xs_store_v3_products', JSON.stringify(updated));
+    }
+  };
+
+  const createReference = async () => {
     if (!newRef.imageUrl) return alert("La imagen es obligatoria");
     const reference: Reference = {
       id: Date.now().toString(),
@@ -439,23 +392,34 @@ function App() {
       date: new Date().toLocaleDateString(),
       imageUrl: newRef.imageUrl
     };
-    setReferences([reference, ...references]);
+
+    if (isConnected && supabase) {
+        await supabase.from('references').insert(reference);
+        const { data } = await supabase.from('references').select('*').order('date', { ascending: false });
+        if (data) setReferences(data);
+    } else {
+        const updated = [reference, ...references];
+        setReferences(updated);
+        localStorage.setItem('xs_store_v3_references', JSON.stringify(updated));
+    }
+    
     setNewRef({ clientName: '', serviceName: '', imageUrl: undefined });
   };
 
-  const deleteProduct = (id: string) => {
-    if (window.confirm("¿Estás seguro de eliminar este producto?")) {
-      setProducts(products.filter(p => p.id !== id));
-    }
-  };
-  
-  const deleteReference = (id: string) => {
-     if (window.confirm("¿Eliminar referencia de forma permanente?")) {
-       setReferences(prevRefs => prevRefs.filter(r => r.id !== id));
+  const deleteReference = async (id: string) => {
+     if (!window.confirm("¿Eliminar referencia permanentemente?")) return;
+
+     if (isConnected && supabase) {
+        await supabase.from('references').delete().eq('id', id);
+        setReferences(references.filter(r => r.id !== id));
+     } else {
+        const updated = references.filter(r => r.id !== id);
+        setReferences(updated);
+        localStorage.setItem('xs_store_v3_references', JSON.stringify(updated));
      }
   };
 
-  const addAnnouncement = () => {
+  const addAnnouncement = async () => {
     if(!newAnnounce.trim()) return;
     const ann: Announcement = {
       id: Date.now().toString(),
@@ -463,17 +427,33 @@ function App() {
       active: true,
       createdAt: new Date().toISOString()
     };
-    setAnnouncements([ann, ...announcements]);
+
+    if (isConnected && supabase) {
+        await supabase.from('announcements').insert(ann);
+        const { data } = await supabase.from('announcements').select('*').order('createdAt', { ascending: false });
+        if(data) setAnnouncements(data);
+    } else {
+        const updated = [ann, ...announcements];
+        setAnnouncements(updated);
+        localStorage.setItem('xs_store_v3_announcements', JSON.stringify(updated));
+    }
     setNewAnnounce('');
   };
 
-  const deleteAnnouncement = (id: string) => {
-    if(window.confirm("¿Borrar anuncio?")) {
-      setAnnouncements(announcements.filter(a => a.id !== id));
+  const deleteAnnouncement = async (id: string) => {
+    if(!window.confirm("¿Borrar anuncio?")) return;
+    
+    if (isConnected && supabase) {
+        await supabase.from('announcements').delete().eq('id', id);
+        setAnnouncements(announcements.filter(a => a.id !== id));
+    } else {
+        const updated = announcements.filter(a => a.id !== id);
+        setAnnouncements(updated);
+        localStorage.setItem('xs_store_v3_announcements', JSON.stringify(updated));
     }
   }
 
-  const addDiscount = () => {
+  const addDiscount = async () => {
     if(!newDiscount.code.trim()) return;
     const disc: DiscountCode = {
       id: Date.now().toString(),
@@ -481,13 +461,41 @@ function App() {
       description: newDiscount.desc,
       active: true
     };
-    setDiscountCodes([disc, ...discountCodes]);
+
+    if (isConnected && supabase) {
+        await supabase.from('discount_codes').insert(disc);
+        const { data } = await supabase.from('discount_codes').select('*');
+        if(data) setDiscountCodes(data);
+    } else {
+        const updated = [disc, ...discountCodes];
+        setDiscountCodes(updated);
+        localStorage.setItem('xs_store_v3_discounts', JSON.stringify(updated));
+    }
     setNewDiscount({code: '', desc: ''});
   }
 
-  const deleteDiscount = (id: string) => {
-    setDiscountCodes(discountCodes.filter(d => d.id !== id));
+  const deleteDiscount = async (id: string) => {
+    if (isConnected && supabase) {
+        await supabase.from('discount_codes').delete().eq('id', id);
+        setDiscountCodes(discountCodes.filter(d => d.id !== id));
+    } else {
+        const updated = discountCodes.filter(d => d.id !== id);
+        setDiscountCodes(updated);
+        localStorage.setItem('xs_store_v3_discounts', JSON.stringify(updated));
+    }
   }
+
+  const startEdit = (product: Product) => {
+    setEditingId(product.id);
+    setNewProd({ ...product });
+    setView('CATALOG');
+    setTimeout(() => formTopRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setNewProd({ title: '', price: '', description: '', category: 'CONFIGS', features: [], imageUrl: undefined });
+  };
 
   const handleNav = (target: ViewState) => {
     setView(target);
@@ -506,6 +514,21 @@ function App() {
   };
 
   const filteredProducts = filter === 'ALL' ? products : products.filter(p => p.category === filter);
+
+  if (isLoading) {
+    return (
+      <div className="h-screen w-full bg-[#050505] flex flex-col items-center justify-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-tr from-purple-900/10 to-blue-900/10 animate-pulse"></div>
+        <div className="relative z-10 p-6 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 shadow-2xl flex flex-col items-center">
+            <Shield size={48} className="text-purple-500 mb-4 animate-bounce" />
+            <h1 className="text-2xl font-black text-white tracking-widest">SISTEMA<span className="text-purple-500">PERÚ</span></h1>
+            <div className="flex items-center gap-2 mt-4 text-xs text-slate-400 font-mono">
+              <Loader2 size={12} className="animate-spin" /> CARGANDO BASE DE DATOS...
+            </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#050505] text-slate-200 font-sans selection:bg-purple-500/30">
@@ -559,6 +582,12 @@ function App() {
                 <div className="flex justify-between items-center mb-4 pb-2 border-b border-white/10">
                    <h3 className="font-bold text-white flex items-center gap-2"><Shield size={16} className="text-purple-500" /> Control Global</h3>
                    <button onClick={() => setIsAdmin(false)} className="text-xs bg-red-900/30 text-red-400 px-2 py-1 rounded hover:bg-red-900/50 border border-red-500/20">Cerrar Sesión</button>
+                </div>
+                
+                {/* Connection Status */}
+                <div className={`mb-4 text-xs flex items-center gap-2 px-3 py-2 rounded ${isConnected ? 'bg-green-900/20 text-green-400 border border-green-500/30' : 'bg-red-900/20 text-red-400 border border-red-500/30'}`}>
+                   {isConnected ? <Database size={14} /> : <WifiOff size={14} />}
+                   {isConnected ? 'Conectado a Base de Datos (Nube)' : 'Modo Local (Sin Nube)'}
                 </div>
 
                 {/* Quick Announcements */}
@@ -781,8 +810,8 @@ function App() {
                   </div>
                   <div className="space-y-4">
                     <button onClick={() => prodFileRef.current?.click()} className="w-full h-32 bg-black/30 border-2 border-dashed border-white/10 hover:border-purple-500/50 rounded-lg flex flex-col items-center justify-center text-slate-400 relative overflow-hidden group">
-                      {newProd.imageUrl ? <img src={newProd.imageUrl} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity" /> : <Upload size={24} className="mb-2" />}
-                      <span className="relative z-10 text-xs font-bold">{newProd.imageUrl ? 'Cambiar Imagen' : 'Subir Imagen (IA)'}</span>
+                      {isUploading ? <Loader2 className="animate-spin" /> : (newProd.imageUrl ? <img src={newProd.imageUrl} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity" /> : <Upload size={24} className="mb-2" />)}
+                      <span className="relative z-10 text-xs font-bold">{isUploading ? 'Subiendo a Nube...' : (newProd.imageUrl ? 'Cambiar Imagen' : 'Subir Imagen (IA)')}</span>
                     </button>
                     <input type="file" ref={prodFileRef} className="hidden" accept="image/*" onChange={handleProdImage} />
                     
@@ -796,7 +825,7 @@ function App() {
                   </div>
                 </div>
                 <div className="mt-6 flex gap-4">
-                  <button onClick={saveProduct} disabled={isAnalyzing} className="flex-1 bg-purple-600 hover:bg-purple-500 disabled:bg-slate-700 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2">
+                  <button onClick={saveProduct} disabled={isAnalyzing || isUploading} className="flex-1 bg-purple-600 hover:bg-purple-500 disabled:bg-slate-700 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2">
                     <Save size={18} /> {editingId ? 'Actualizar Producto' : 'Publicar Producto'}
                   </button>
                   {editingId && (
@@ -885,10 +914,10 @@ function App() {
                       <input type="text" placeholder="Servicio" value={newRef.serviceName} onChange={e => setNewRef({...newRef, serviceName: e.target.value})} className="w-full bg-black/50 border border-white/10 rounded-lg p-2 text-sm text-white" />
                     </div>
                     <button onClick={() => refFileRef.current?.click()} className="h-20 w-20 border border-dashed border-white/20 rounded-lg flex items-center justify-center hover:bg-white/5 relative overflow-hidden">
-                       {newRef.imageUrl ? <img src={newRef.imageUrl} className="absolute inset-0 w-full h-full object-cover" /> : <ImageIcon className="text-slate-500" />}
+                       {isUploading ? <Loader2 className="animate-spin" /> : (newRef.imageUrl ? <img src={newRef.imageUrl} className="absolute inset-0 w-full h-full object-cover" /> : <ImageIcon className="text-slate-500" />)}
                     </button>
                     <input type="file" ref={refFileRef} className="hidden" accept="image/*" onChange={handleRefImage} />
-                    <button onClick={createReference} className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-bold h-10 self-center">Subir</button>
+                    <button onClick={createReference} disabled={isUploading} className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-bold h-10 self-center">Subir</button>
                  </div>
               </div>
             )}
