@@ -41,10 +41,3 @@ export interface DiscountCode {
   description: string;
   active: boolean;
 }
-
-export interface AppConfig {
-  whatsapp: string;
-  telegramPersonal: string;
-  telegramGroup: string;
-  tiktok: string;
-}
