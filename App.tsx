@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   LayoutGrid, 
@@ -28,9 +29,10 @@ import {
   ChevronUp,
   Settings,
   RefreshCw,
-  Users
+  Users,
+  Link as LinkIcon
 } from 'lucide-react';
-import { Product, Reference, Category, CATEGORIES, Announcement, DiscountCode } from './types';
+import { Product, Reference, Category, CATEGORIES, Announcement, DiscountCode, AppConfig } from './types';
 import { analyzeProductImage } from './services/geminiService';
 import { supabase } from './services/supabaseClient';
 
@@ -172,12 +174,20 @@ const INITIAL_DISCOUNTS: DiscountCode[] = [
   }
 ];
 
+const INITIAL_CONFIG: AppConfig = {
+  whatsapp: 'https://wa.me/51939544566',
+  telegramPersonal: 'https://t.me/SistemaPeruOfical1',
+  telegramGroup: 'https://t.me/SistemaPeruOficial',
+  tiktok: 'https://www.tiktok.com/@pablito_ofcc?_r=1&_t=ZS-925AOPBhkwP'
+};
+
 type ViewState = 'HOME' | 'CATALOG' | 'REFERENCES';
 
 function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [showConfigPanel, setShowConfigPanel] = useState(false);
   const [loginPassword, setLoginPassword] = useState('');
   const [view, setView] = useState<ViewState>('HOME');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -193,6 +203,7 @@ function App() {
   const [references, setReferences] = useState<Reference[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([]);
+  const [config, setConfig] = useState<AppConfig>(INITIAL_CONFIG);
 
   // Edit/Create State
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -209,6 +220,9 @@ function App() {
   const [newAnnounce, setNewAnnounce] = useState('');
   const [newDiscount, setNewDiscount] = useState<{code: string, desc: string}>({ code: '', desc: '' });
   const [featureInput, setFeatureInput] = useState('');
+  
+  // Config Form State
+  const [tempConfig, setTempConfig] = useState<AppConfig>(INITIAL_CONFIG);
 
   const prodFileRef = useRef<HTMLInputElement>(null);
   const refFileRef = useRef<HTMLInputElement>(null);
@@ -244,6 +258,7 @@ function App() {
           const { data: refs, error: refError } = await supabase.from('references').select('*').order('date', { ascending: false });
           const { data: anns, error: annError } = await supabase.from('announcements').select('*').order('createdAt', { ascending: false });
           const { data: discs, error: discError } = await supabase.from('discount_codes').select('*');
+          const { data: settings, error: settingsError } = await supabase.from('app_settings').select('*').eq('id', 'global').single();
 
           if (!prodError) {
             // --- AUTO SEEDING LOGIC ---
@@ -268,6 +283,17 @@ function App() {
           if (!annError && anns) setAnnouncements(anns);
           if (!discError && discs) setDiscountCodes(discs);
           
+          if (!settingsError && settings) {
+             const loadedConfig = {
+               whatsapp: settings.whatsapp,
+               telegramPersonal: settings.telegram_personal,
+               telegramGroup: settings.telegram_group,
+               tiktok: settings.tiktok
+             };
+             setConfig(loadedConfig);
+             setTempConfig(loadedConfig);
+          }
+
           setIsConnected(true);
           setIsLoading(false);
           return; 
@@ -284,11 +310,17 @@ function App() {
         const savedRefs = localStorage.getItem('xs_store_v3_references');
         const savedAnnounce = localStorage.getItem('xs_store_v3_announcements');
         const savedDiscounts = localStorage.getItem('xs_store_v3_discounts');
+        const savedConfig = localStorage.getItem('xs_store_v3_config');
 
         setProducts(savedProds ? JSON.parse(savedProds) : INITIAL_PRODUCTS);
         setReferences(savedRefs ? JSON.parse(savedRefs) : INITIAL_REFS);
         setAnnouncements(savedAnnounce ? JSON.parse(savedAnnounce) : INITIAL_ANNOUNCEMENTS);
         setDiscountCodes(savedDiscounts ? JSON.parse(savedDiscounts) : INITIAL_DISCOUNTS);
+        if (savedConfig) {
+          const parsed = JSON.parse(savedConfig);
+          setConfig(parsed);
+          setTempConfig(parsed);
+        }
       } catch (e) {
         console.error("Local storage corrupted", e);
         localStorage.clear();
@@ -331,6 +363,26 @@ function App() {
         alert("✅ Catálogo local restaurado.");
     }
     setIsLoading(false);
+  };
+
+  const saveConfig = async () => {
+    setConfig(tempConfig);
+    setShowConfigPanel(false);
+    
+    if (isConnected && supabase) {
+      const { error } = await supabase.from('app_settings').upsert({
+        id: 'global',
+        whatsapp: tempConfig.whatsapp,
+        telegram_personal: tempConfig.telegramPersonal,
+        telegram_group: tempConfig.telegramGroup,
+        tiktok: tempConfig.tiktok
+      });
+      if (error) alert("Error guardando config en nube: " + error.message);
+      else alert("✅ Configuración guardada en Nube.");
+    } else {
+      localStorage.setItem('xs_store_v3_config', JSON.stringify(tempConfig));
+      alert("✅ Configuración guardada localmente.");
+    }
   };
 
   // --- IMAGE UPLOAD ---
@@ -450,7 +502,7 @@ function App() {
       category: newProd.category as Category || 'CONFIGS',
       features: newProd.features || [],
       imageUrl: newProd.imageUrl,
-      buyLink: 'https://wa.me/51939544566'
+      buyLink: config.whatsapp
     };
 
     if (isConnected && supabase) {
@@ -680,6 +732,54 @@ function App() {
         </div>
       )}
 
+      {/* --- CONFIG PANEL MODAL --- */}
+      {showConfigPanel && (
+         <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
+           <div className="bg-slate-900 border border-purple-500/50 rounded-2xl p-6 w-full max-w-lg shadow-2xl relative overflow-hidden animate-in zoom-in duration-300">
+             <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
+               <h3 className="text-xl font-bold text-white flex items-center gap-2"><Settings className="text-purple-400"/> Configurar Redes Sociales</h3>
+               <button onClick={() => setShowConfigPanel(false)} className="text-slate-400 hover:text-white"><X size={20}/></button>
+             </div>
+             
+             <div className="space-y-4 mb-6">
+               <div>
+                  <label className="text-xs text-slate-400 mb-1 block">WhatsApp (Enlace Completo)</label>
+                  <div className="flex items-center bg-black/50 border border-white/10 rounded p-2">
+                     <Phone size={16} className="text-green-500 mr-2"/>
+                     <input type="text" value={tempConfig.whatsapp} onChange={(e) => setTempConfig({...tempConfig, whatsapp: e.target.value})} className="bg-transparent w-full text-sm text-white outline-none" />
+                  </div>
+               </div>
+               <div>
+                  <label className="text-xs text-slate-400 mb-1 block">Telegram Personal</label>
+                  <div className="flex items-center bg-black/50 border border-white/10 rounded p-2">
+                     <Send size={16} className="text-blue-400 mr-2"/>
+                     <input type="text" value={tempConfig.telegramPersonal} onChange={(e) => setTempConfig({...tempConfig, telegramPersonal: e.target.value})} className="bg-transparent w-full text-sm text-white outline-none" />
+                  </div>
+               </div>
+               <div>
+                  <label className="text-xs text-slate-400 mb-1 block">Telegram Grupo (Referencias)</label>
+                  <div className="flex items-center bg-black/50 border border-white/10 rounded p-2">
+                     <Users size={16} className="text-blue-300 mr-2"/>
+                     <input type="text" value={tempConfig.telegramGroup} onChange={(e) => setTempConfig({...tempConfig, telegramGroup: e.target.value})} className="bg-transparent w-full text-sm text-white outline-none" />
+                  </div>
+               </div>
+               <div>
+                  <label className="text-xs text-slate-400 mb-1 block">TikTok</label>
+                  <div className="flex items-center bg-black/50 border border-white/10 rounded p-2">
+                     <TikTokIcon size={16} className="text-pink-500 mr-2"/>
+                     <input type="text" value={tempConfig.tiktok} onChange={(e) => setTempConfig({...tempConfig, tiktok: e.target.value})} className="bg-transparent w-full text-sm text-white outline-none" />
+                  </div>
+               </div>
+             </div>
+
+             <div className="flex gap-2">
+                <button onClick={() => setShowConfigPanel(false)} className="flex-1 bg-slate-800 text-white py-2 rounded font-bold hover:bg-slate-700">Cancelar</button>
+                <button onClick={saveConfig} className="flex-1 bg-purple-600 text-white py-2 rounded font-bold hover:bg-purple-500">Guardar Cambios</button>
+             </div>
+           </div>
+         </div>
+      )}
+
       {/* --- FLOATING ADMIN PANEL TOGGLE & CONTENT --- */}
       {isAdmin && (
         <>
@@ -703,6 +803,13 @@ function App() {
                 <div className={`mb-4 text-xs flex items-center gap-2 px-3 py-2 rounded ${isConnected ? 'bg-green-900/20 text-green-400 border border-green-500/30' : 'bg-red-900/20 text-red-400 border border-red-500/30'}`}>
                    {isConnected ? <Database size={14} /> : <WifiOff size={14} />}
                    {isConnected ? 'Conectado a Nube (Supabase)' : 'Modo Local (Sin Nube)'}
+                </div>
+
+                {/* SOCIAL CONFIG BUTTON */}
+                <div className="mb-4">
+                  <button onClick={() => setShowConfigPanel(true)} className="w-full bg-slate-800 hover:bg-slate-700 text-white py-2 rounded font-bold text-xs flex items-center justify-center gap-2 border border-white/10">
+                    <LinkIcon size={14} /> ⚙️ CONFIGURAR REDES
+                  </button>
                 </div>
 
                 {/* RESTORE BUTTON */}
@@ -804,7 +911,7 @@ function App() {
               <button onClick={() => handleNav('CATALOG')} className={`text-sm font-medium transition-colors ${view === 'CATALOG' ? 'text-purple-400' : 'hover:text-purple-400'}`}>Catálogo</button>
               <button onClick={() => handleNav('REFERENCES')} className={`text-sm font-medium transition-colors ${view === 'REFERENCES' ? 'text-purple-400' : 'hover:text-purple-400'}`}>Referencias</button>
               <a 
-                href="https://www.tiktok.com/@sistemaperu_1" 
+                href={config.tiktok}
                 target="_blank" 
                 rel="noreferrer"
                 className="bg-black border border-white/20 hover:border-pink-500 hover:text-pink-500 text-white px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all"
@@ -812,7 +919,7 @@ function App() {
                 <TikTokIcon size={14} /> TikTok
               </a>
               <a 
-                href="https://t.me/SistemaPeruOfical1" 
+                href={config.telegramPersonal}
                 target="_blank" 
                 rel="noreferrer"
                 className="bg-[#229ED9] hover:bg-[#1e8dbf] text-white px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-colors"
@@ -834,8 +941,8 @@ function App() {
             <button onClick={() => handleNav('HOME')} className="block w-full text-left text-sm font-medium hover:text-purple-400">Inicio</button>
             <button onClick={() => handleNav('CATALOG')} className="block w-full text-left text-sm font-medium hover:text-purple-400">Catálogo</button>
             <button onClick={() => handleNav('REFERENCES')} className="block w-full text-left text-sm font-medium hover:text-purple-400">Referencias</button>
-            <a href="https://www.tiktok.com/@sistemaperu_1" target="_blank" rel="noreferrer" className="block w-full text-left text-sm font-medium hover:text-pink-500 flex items-center gap-2"><TikTokIcon size={14}/> TikTok</a>
-            <a href="https://t.me/SistemaPeruOfical1" target="_blank" rel="noreferrer" className="block w-full text-left text-sm font-medium hover:text-blue-500 flex items-center gap-2"><Send size={14}/> Telegram</a>
+            <a href={config.tiktok} target="_blank" rel="noreferrer" className="block w-full text-left text-sm font-medium hover:text-pink-500 flex items-center gap-2"><TikTokIcon size={14}/> TikTok</a>
+            <a href={config.telegramPersonal} target="_blank" rel="noreferrer" className="block w-full text-left text-sm font-medium hover:text-blue-500 flex items-center gap-2"><Send size={14}/> Telegram</a>
           </div>
         )}
       </nav>
@@ -872,19 +979,19 @@ function App() {
                 </button>
               </div>
               <div className="mt-12 flex justify-center gap-6 flex-wrap">
-                 <a href="https://wa.me/51939544566" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-green-500 transition-colors flex flex-col items-center gap-1">
+                 <a href={config.whatsapp} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-green-500 transition-colors flex flex-col items-center gap-1">
                    <div className="p-3 bg-white/5 rounded-full"><Phone size={24} /></div>
                    <span className="text-xs">WhatsApp</span>
                  </a>
-                 <a href="https://t.me/SistemaPeruOfical1" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-blue-400 transition-colors flex flex-col items-center gap-1">
+                 <a href={config.telegramPersonal} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-blue-400 transition-colors flex flex-col items-center gap-1">
                    <div className="p-3 bg-white/5 rounded-full"><Send size={24} /></div>
                    <span className="text-xs">Telegram</span>
                  </a>
-                 <a href="https://www.tiktok.com/@sistemaperu_1" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-pink-500 transition-colors flex flex-col items-center gap-1">
+                 <a href={config.tiktok} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-pink-500 transition-colors flex flex-col items-center gap-1">
                    <div className="p-3 bg-white/5 rounded-full"><TikTokIcon size={24} /></div>
                    <span className="text-xs">TikTok</span>
                  </a>
-                 <a href="https://t.me/SistemaPeruOficial" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-blue-300 transition-colors flex flex-col items-center gap-1">
+                 <a href={config.telegramGroup} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-blue-300 transition-colors flex flex-col items-center gap-1">
                    <div className="p-3 bg-white/5 rounded-full"><Users size={24} /></div>
                    <span className="text-xs">Grupo Ref</span>
                  </a>
@@ -1026,7 +1133,7 @@ function App() {
                     <div className="space-y-2 mb-6 flex-1">
                       {product.features?.slice(0, 3).map((feat, idx) => <div key={idx} className="flex items-center gap-2 text-[10px] text-slate-300"><CheckCircle2 size={12} className="text-purple-500" /> {feat}</div>)}
                     </div>
-                    <a href={product.buyLink} target="_blank" rel="noreferrer" className="w-full py-2.5 rounded-lg font-bold text-xs bg-white/5 hover:bg-green-600 hover:text-white text-slate-300 transition-all flex items-center justify-center gap-2 border border-white/5 hover:border-transparent">
+                    <a href={config.whatsapp} target="_blank" rel="noreferrer" className="w-full py-2.5 rounded-lg font-bold text-xs bg-white/5 hover:bg-green-600 hover:text-white text-slate-300 transition-all flex items-center justify-center gap-2 border border-white/5 hover:border-transparent">
                       <Phone size={14} /> CONSULTAR
                     </a>
                   </div>
@@ -1074,7 +1181,7 @@ function App() {
                     <p className="text-slate-400 text-xs">Únete a nuestro canal oficial de referencias y comunidad.</p>
                   </div>
                </div>
-               <a href="https://t.me/SistemaPeruOficial" target="_blank" rel="noreferrer" className="w-full md:w-auto bg-[#229ED9] hover:bg-[#1e8dbf] text-white px-6 py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all hover:scale-105 shadow-lg shadow-blue-500/20">
+               <a href={config.telegramGroup} target="_blank" rel="noreferrer" className="w-full md:w-auto bg-[#229ED9] hover:bg-[#1e8dbf] text-white px-6 py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all hover:scale-105 shadow-lg shadow-blue-500/20">
                   <Send size={18} /> Unirme al Grupo
                </a>
             </div>
@@ -1106,7 +1213,7 @@ function App() {
       {/* Footer */}
       <footer className="py-8 border-t border-white/5 bg-black mt-auto">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <p className="text-slate-600 text-xs">© 2024 SISTEMA PERÚ. Servicios garantizados.</p>
+          <p className="text-slate-600 text-xs">© 2025 SISTEMA PERÚ. Servicios garantizados.</p>
         </div>
       </footer>
     </div>
